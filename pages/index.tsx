@@ -9,14 +9,28 @@ type ResultsData = {
   id: number;
   price: number;
   title: string;
+  priceFormatted: string;
+};
+
+type Results = {
+  totalPrice: number;
+  data: ResultsData[];
 };
 
 const Home: NextPage = () => {
   const [search, setSearch] = useState("");
-  const [results, setResults] = useState<ResultsData[]>([]);
+  const [results, setResults] = useState<Results>({
+    totalPrice: 0,
+    data: [],
+  });
 
   async function handleSearch(event: FormEvent) {
     event.preventDefault();
+
+    const formatter = new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    }).format;
 
     if (!search.trim()) return;
 
@@ -27,7 +41,23 @@ const Home: NextPage = () => {
         },
       });
 
-      setResults(response.data);
+      const totalPrice = response.data.reduce((total, product) => {
+        return total + product.price;
+      }, 0);
+
+      const products = response.data.map((product) => {
+        return {
+          id: product.id,
+          title: product.title,
+          price: product.price,
+          priceFormatted: formatter(product.price),
+        };
+      });
+
+      setResults({
+        totalPrice,
+        data: products,
+      });
     } catch {}
   }
 
@@ -56,7 +86,11 @@ const Home: NextPage = () => {
           <button>Buscar</button>
         </form>
 
-        <SearchResults results={results} onAddToWishlist={addToWishlist} />
+        <SearchResults
+          results={results.data}
+          totalPrice={results.totalPrice}
+          onAddToWishlist={addToWishlist}
+        />
       </main>
     </div>
   );
